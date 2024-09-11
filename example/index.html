@@ -1,0 +1,37 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="https://namu.codes/play/highlightjs-theme-namu.css" />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script src="../bin/highlightjs-namu-min.js"></script>
+    </head>
+    <body>
+        <script>hljs.highlightAll();</script>
+        <pre><code class="language-namu">
+def _person(abc)
+    # comment
+    foo(x int) person ## comment
+    still comment ##
+
+# Hello, I'm Namu language.
+# Please edit your code freely and press button in the top right to run.
+# Refer to the 'guide' section above for more syntax.
+main() void
+    print("hello world!")
+
+def person
+    name := "default"
+    bow() str
+        print("hello. I'm " + name + "\n")
+        name
+
+main() void
+    mike := person()
+    mike.name = "mike"
+
+    last := for p in {mike, mike(), mike(mike)}
+        p.bow()
+
+    print("and second one was " + last[1])
+        </code></pre>
+    </body>
+</html>

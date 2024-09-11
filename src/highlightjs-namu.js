@@ -3,19 +3,17 @@ Language: namu
 Description: Namu is strong-typed OOP script language.
 Author: kniz
 Website: https://namu.codes
+Version: v0.2.8
 Category: common
 */
 
-// this codes is super simple:
-//  may need to refactor and develop more.
-//  and also writes codes along to latest namu syntax rule (v0.2.7)
+// this code is super simple: may need to refactor and develop more.
 (() => {
     var lang = (() => {
       const regex = hljs.regex;
-      const ID = hljs.IDENT_RE;
-      const ACCESSIBLE_ID = `[_\\+]*${ID}`;
-      const SPACES = /[\t \f]+/;
-      const SPACIBLE = /\s*/;
+      const ID_RE = `[a-zA-Z_\+]+[a-zA-Z0-9]*`
+      const SPACE_RE = `[ \t]+`;
+      const ACCESSIBLE_ID_RE = `[_\\\+]*${ID_RE}`;
 
       const RESERVED_WORDS = [
         'def', 'as', 'is', 'ctor',
@@ -46,9 +44,17 @@ Category: common
         type: TYPES
       };
 
+      const ID = {
+        scope: `variables`,
+        match: ID_RE,
+        keywords: KEYWORDS,
+      }
+
+      const OPERATORS_RE = `[.,\\\{\\\}\\\+\\\-=%\\\/\\\*\\\^\\\|&!\\\[\\\]]`
       const OPERATORS = {
         scope: "operator",
-        match: '[\+\-\=\%\/\*\^\|\&|\!\(\)\{\}\[\\]]',
+        relevance: 0,
+        match: OPERATORS_RE
       }
 
       const STRING = {
@@ -65,32 +71,21 @@ Category: common
         relevance: 0,
         variants: [
           { // int
-            begin: '[0-9]+',
+            begin: /[0-9]+/,
           },
           { // flt
-            begin: '[0-9]+\\.[0-9]+[f]?',
+            begin: /[0-9]+\.[0-9]+[f]?/,
           },
         ]
       };
 
-      const COMMENT = hljs.HASH_COMMENT_MODE;
-
-      // e.g. def myObj
-      const DEF_OBJ = {
-        match: [
-          `def`, SPACES, ID//ACCESSIBLE_ID,
-        ],
-        keywords: KEYWORDS,
-        scope: {
-          1: "keyword",
-          3: "title.class"
-        },
-      };
+      const COMMENT = hljs.COMMENT('#', '$');
+      const BLOCK_COMMENT = hljs.COMMENT(`##`, `##`);
 
       // e.g. (args1 type, args2 type)
       const PARAM = {
         match: [
-          ID, SPACES, ID,
+            ID_RE, SPACE_RE, ID_RE
         ],
         keywords: KEYWORDS,
         scope: {
@@ -98,39 +93,105 @@ Category: common
           3: 'title.class',
         }
       };
+
       const PARAMS = {
-        variants: [
-          {
-            begin: /\(\s*\)/,
-            skip: true,
-            contains: [ OPERATORS ],
-          },
-          {
-            begin: /\(/,
-            end: /\)/,
-            //excludeEnd: true,
-            //excludeBegin: true,
-            keywords: KEYWORDS,
-            contains: [
-              PARAM, STRING, OPERATORS, NUMBER,
-            ],
-          }
-        ]
+        scope: 'params',
+        begin: /\(/,
+        beginScope: "operator",
+        end: /\)/,
+        endScope: "operator",
+        contains: [
+          BLOCK_COMMENT, COMMENT,
+          OPERATORS, PARAM,
+          NUMBER, ID, STRING
+        ],
+        keywords: KEYWORDS,
       };
+
+      const DEF_ASSIGN = {
+          scope: "def_assign",
+          begin: [
+             ID_RE, SPACE_RE, `:=`, SPACE_RE
+          ],
+          beginScope: {
+              1: "variables",
+              3: "operator",
+          },
+          keywords: KEYWORDS,
+          contains: [
+             BLOCK_COMMENT, COMMENT,
+             STRING, NUMBER, ID, OPERATORS, PARAMS
+          ]
+      }
 
       // e.g. main(args1 type, args2 type) retType
       const DEF_FUNC = {
+        scope: "function",
         begin: [
-          ACCESSIBLE_ID, /\s*\(/
+            `${ID_RE}\\s*(?=\\\()`
         ],
-        excludeEnd: true,
-        scope: {
+        beginScope: {
           1: "title.function",
-          2: "operator",
         },
+        end: `\\\)(?!${SPACE_RE}${ID_RE})`,
+        keywords: KEYWORDS,
+        returnEnd: true,
         contains: [
-          PARAMS, OPERATORS
+            {
+                scope: 'params1',
+                begin: /\(/,
+                beginScope: "operator",
+                end: /\)/,
+                endScope: "operator",
+                illegal: /\n/,
+                contains: [
+                  BLOCK_COMMENT, COMMENT,
+                  OPERATORS, PARAM,
+                  NUMBER, ID, STRING
+                ],
+                keywords: KEYWORDS,
+                endsParent: true,
+            }
+        ]
+      };
+
+      const STATEMENT = {
+          contains: [
+              BLOCK_COMMENT, COMMENT, DEF_FUNC, PARAMS, STRING, NUMBER, ID, OPERATORS, DEF_ASSIGN,
+          ],
+          keywords: KEYWORDS,
+      }
+
+      // e.g. def myObj
+      const DEF_OBJ = {
+        variants: [
+            {
+                begin: [
+                  `def`, SPACE_RE, ACCESSIBLE_ID_RE,
+                ],
+                end: `$`,
+                scope: {
+                  1: "keyword",
+                  3: "title.class"
+                },
+            },
+            {
+                begin: [
+                  `def`, SPACE_RE, `${ACCESSIBLE_ID_RE}(?=\\\()`
+                ],
+                beginScope: {
+                    1: "keyword",
+                    3: "title.class",
+                },
+                end: /\)/,
+                returnEnd: true,
+                contains: [
+                    `self`, STATEMENT
+                ]
+            }
         ],
+        scope: "object",
+        keywords: KEYWORDS,
       };
 
       return E => ({
@@ -139,14 +200,14 @@ Category: common
             unicodeRegex: true,
             keywords: KEYWORDS,
             contains: [
+              BLOCK_COMMENT,
+              COMMENT,
               NUMBER,
               STRING,
-              COMMENT,
-              //DEF_VAR,
-              DEF_OBJ,
-              PARAMS,
-              DEF_FUNC,
               OPERATORS,
+              DEF_ASSIGN,
+              DEF_OBJ,
+              DEF_FUNC,
             ]
           })
       })();
