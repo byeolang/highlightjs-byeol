@@ -1,8 +1,8 @@
 /*
-Language: namu
-Description: Namu is strong-typed OOP script language.
+Language: byeol
+Description: byeol is strong-typed OOP script language.
 Author: kniz
-Website: https://namu.codes
+Website: https://byeol.codes
 Version: v0.2.8
 Category: common
 */
@@ -195,7 +195,7 @@ Category: common
       };
 
       return E => ({
-            name: 'namu',
+            name: 'byeol',
             aliases: [ 'nm' ],
             unicodeRegex: true,
             keywords: KEYWORDS,
@@ -211,5 +211,5 @@ Category: common
             ]
           })
       })();
-      hljs.registerLanguage("namu", lang);
+      hljs.registerLanguage("byeol", lang);
 })();
