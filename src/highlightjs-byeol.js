@@ -3,7 +3,7 @@ Language: byeol
 Description: byeol is strong-typed OOP script language.
 Author: kniz
 Website: https://byeol.codes
-Version: v0.2.8
+Version: v0.2.11
 Category: common
 */
 
@@ -20,7 +20,7 @@ Category: common
         'on', 'in', 'next', 'else',
         'for', 'if', 'ret', 'while',
         'with', 'pack', 'break', 'get',
-        'set', 'end',
+        'set', 'end', 'only',
       ];
 
       const BUILT_INS = [
@@ -33,7 +33,7 @@ Category: common
 
       const TYPES = [
         'void', 'err', 'int', 'super',
-        'byte', 'flt', 'str', 'char',
+        'byte', 'flt', 'str', 'bool',
         'me', 'it',
       ];
 
@@ -50,19 +50,54 @@ Category: common
         keywords: KEYWORDS,
       }
 
-      const OPERATORS_RE = `[.,\\\{\\\}\\\+\\\-=%\\\/\\\*\\\^\\\|&!\\\[\\\]]`
+      // e.g. Button` -> button Button
+      const BACKTICK_TYPE = {
+        scope: 'title.class',
+        match: /[A-Z][a-zA-Z0-9]*`/,
+      }
+
+      const OPERATORS_RE = `\\.\\.|[.,\\\{\\\}\\\+\\\-=%\\\/\\\*\\\^\\\|&!\\\[\\\]]`
       const OPERATORS = {
         scope: "operator",
         relevance: 0,
         match: OPERATORS_RE
       }
 
+      const STRING_TEMPLATE = {
+        scope: 'subst',
+        variants: [
+          { // ${expr}
+            begin: /\$\{/,
+            end: /\}/,
+            contains: [] // will be filled later
+          },
+          { // $var
+            begin: /\$/,
+            end: ID_RE,
+            returnEnd: false,
+          }
+        ]
+      };
+
       const STRING = {
         scope: 'string',
-        contains: [ hljs.BACKSLASH_ESCAPE ],
         variants: [
-          hljs.APOS_STRING_MODE,
-          hljs.QUOTE_STRING_MODE
+          {
+            begin: /"/,
+            end: /"/,
+            contains: [
+              hljs.BACKSLASH_ESCAPE,
+              STRING_TEMPLATE
+            ]
+          },
+          {
+            begin: /'/,
+            end: /'/,
+            contains: [
+              hljs.BACKSLASH_ESCAPE,
+              STRING_TEMPLATE
+            ]
+          }
         ]
       };
 
@@ -70,17 +105,23 @@ Category: common
         scope: 'number',
         relevance: 0,
         variants: [
-          { // int
-            begin: /[0-9]+/,
+          { // hex
+            begin: /0x[0-9a-fA-F]+/,
+          },
+          { // octal
+            begin: /0[0-7]+/,
           },
           { // flt
             begin: /[0-9]+\.[0-9]+[f]?/,
           },
+          { // int
+            begin: /[0-9]+/,
+          },
         ]
       };
 
-      const COMMENT = hljs.COMMENT('#', '$');
-      const BLOCK_COMMENT = hljs.COMMENT(`##`, `##`);
+      const COMMENT = hljs.COMMENT('#(?!#)', '$');
+      const BLOCK_COMMENT = hljs.COMMENT('##', '##');
 
       // e.g. (args1 type, args2 type)
       const PARAM = {
@@ -204,6 +245,7 @@ Category: common
               COMMENT,
               NUMBER,
               STRING,
+              BACKTICK_TYPE,
               OPERATORS,
               DEF_ASSIGN,
               DEF_OBJ,
